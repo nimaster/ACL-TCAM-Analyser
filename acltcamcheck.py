@@ -1,16 +1,30 @@
+"""
+THIS SCRIPT CALCULATES THE TCAM RESOURCES ON CISCO 8000 SERIES ROUTERS REQUIRED FOR A GIVEN ACCESS_LIST
+COPY YOUR ACL TO A FILE CALLED sample-acl AND THEN RUN THE SCRIPT
+
+NIALL MASTERSON
+CISCO SYSTEMS
+2022
+"""
+
+
 import math
 import re
 
 totaltcam = 0
 rangetcam = 0
 
+#PROTOCOL DICTIONARY IS USED TO TRANSLATE THE WELL-KNOWN PROTOCOL NAMES INTO THEIR RESPECTIVE PORT NUMBERS. IOS-XR AUTO-TRANSLATES THE PORT NUMBERS OF THESE WELL KNOW PROTOCOLS INTO THE PROTOCOL NAME IN THE ROUTER CONFIG. TRANSLATING IT BACK TO THE PORT NUMBER IS NEEDED IN THE SCRIPT IN ORDER TO CALCULATE THE TCAM ENTRIES FOR ACL LINES THAT USE THESE WELL-KNOWN PROTOCOLS ALONG WITH THE RANGE, LT OR GT OPTIONS. 
+
 protocol = {'bgp': 179, 'chargen': 19, 'cmd': 514, 'daytime': 13, 'discard': 9, 'domain': 53, 'echo': 7, 'exec': 512, 'finger': 79, 'ftp': 21, 'ftp-data': 20, 'gopher': 70, 'hostname': 101, 'https': 443, 'indent': 113, 'irc': 194, 'klogin': 543, 'kshell': 544, 'ldp': 646, 'login': 513, 'lpd': 515, 'nntp': 119, 'pim-auto-rp': 496, 'pop2': 109, 'pop3': 110, 'radius': 1812, 'radius-acct': 1813, 'smtp': 25, 'snmp': 161, 'ssh': 22, 'sunrpc': 111, 'tacacs': 49, 'talk': 517, 'telnet': 23, 'time': 37, 'uucp': 540, 'whois': 43, 'www': 80, 'bfd': 3784, 'biff': 512, 'bootpc': 68, 'bootps': 67, 'discard': 9, 'dnsix': 195, 'echo': 7, 'isakmp': 500, 'mobile-ip': 434, 'nameserver': 42, 'netbios-dgm': 138, 'netbios-ns': 137, 'netbios-ss': 139, 'rip': 520, 'snmptrap': 162, 'syslog': 514, 'tftp': 69, 'who': 513, 'xdmcp': 177}
 
+#THE CALC_RANGE FUNCTION WILL CALCULATE THE NUMBER OF TCAM ENTRIES NEEDED FOR ACL LINES THAT USE THE RANGE, LT OR GT OPTIONS TO DEFINE A RANGE OF TCP OR USP PORTS
 
 def calc_range ():
     global rangetcam
-    #CHECK IF THE LOWEST NUMBER IN THE RANGE IS ODD. IF SO, THEN THIS NUMBER WILL CONSUME A SINGLE TCAM ENTRY BY ITSELF
-    #IF IT IS ODD THEN CREATE A NEW VARIABLE THAT WILL BE LOWEST EVEN NUMBER
+
+#CHECK IF THE LOWEST NUMBER IN THE RANGE IS ODD. IF SO, THEN THIS NUMBER WILL CONSUME A SINGLE TCAM ENTRY BY ITSELF
+#IF IT IS ODD THEN CREATE A NEW VARIABLE THAT WILL BE LOWEST EVEN NUMBER
 
     if (low % 2) == 0:
         evenlow = low
@@ -19,8 +33,8 @@ def calc_range ():
         #print(low, "will use one TCAM entry")
         rangetcam +=1
 
-    #CHECK IF THE HIGHEST NUMBER IN THE RANGE IS EVEN. IF SO, THEN THIS NUMBER WILL CONSUME A SINGLE TCAM ENTRY BY ITSELF
-    #IF IT IS EVEN THEN CREATE A NEW VARIABLE THAT WILL BE HIGHEST EVEN NUMBER
+#CHECK IF THE HIGHEST NUMBER IN THE RANGE IS EVEN. IF SO, THEN THIS NUMBER WILL CONSUME A SINGLE TCAM ENTRY BY ITSELF
+#IF IT IS EVEN THEN CREATE A NEW VARIABLE THAT WILL BE HIGHEST ODD NUMBER
 
     if (high % 2) == 0:
         oddhigh = high -1
@@ -28,6 +42,9 @@ def calc_range ():
         rangetcam +=1
     else:
         oddhigh = high
+
+#CALCULATE THE RANGES OF VALUES THAT CAN BE COVERED BY THE SAME BITSTRING AND BITMASK THAT CAN BE COVERED BY A SINGLE TCAM ENTRY
+#START WITH RANGES WHERE THE LOWER VALUE IS MORE THAN HALF OF THE HIGHER VALUE
 
     while (evenlow >= oddhigh/2 +1) and (evenlow < oddhigh):
         A = 0
@@ -58,7 +75,7 @@ def calc_range ():
             #print(evenlow, "to", evenlow + B -1, "will use one TCAM entry")
             evenlow = evenlow + B
 
-
+#NEXT LOOK AT RANGES WHERE THE LOWER VALUE IS LESS THAN HALF OF THE HIGHER VALUE. AND CALCULATE THE RANGES OF VALUES WITHIN THAT RANGE THAT CAN BE COVERED BY THE SAME BITSTRING AND BITMASK WHICH CAN SHARE THE SAME TCAM ENTRY. THIS WILL CALCULATE THE TCAM ENTRIES UP UNTIL A VALUE THAT IS HALF OF THE HIGH VALUE.
     while evenlow < oddhigh/2 +1:
         A = 0
         if evenlow == 0:
@@ -86,6 +103,7 @@ def calc_range ():
             #print(evenlow, "to", evenlow + B -1, "will use one TCAM entry")
             evenlow = evenlow + B
 
+#FINALLY CALCULATE THE REMAINING TCAM ENTRIES FOR UP TO THE HIGH VALUE
     while oddhigh - evenlow > 0:
         diff = oddhigh - evenlow + 1
         A = 0
@@ -110,8 +128,12 @@ def calc_range ():
     #print("Total TCAM entries required for range", low,"to", high, "is:", rangetcam)
 
 
+#ACCESS THE FILE WITH THE ACL
+
 f = open('sample-acl')
 lines = f.readlines()
+
+#REGEX PATTERNS DEFINED FOR PARSING THE ACL FILE
 
 pattern1 = "deny ipv4"
 denyipv4 = 0
@@ -157,6 +179,8 @@ pattern16 = " lt "
 pattern17 = " gt "
 
 pattern18 = "[a-z]"
+
+#PARSE EACH ACL LINE TO DETERMINE HOW MUCH TCAM IT WILL USE. ACL LINES WITH THE RANGE, LT AND GT OPTIONS WILL CALL THE CALC_RANGE FUNCTION DEFINED ABOVE
 
 for line in lines:
     for match in re.finditer(pattern1, line):
@@ -290,6 +314,9 @@ for line in lines:
 totaltcam = totaltcam + rangetcam
 
 totaltcam += 1
+
+#PRINT OUTPUT
+
 print("Number of deny ipv4 entries:", denyipv4)
 print("Number of permit ipv4 entries:", permitipv4)
 print("Number of deny udp entries:", denyudp)
