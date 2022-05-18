@@ -1,7 +1,9 @@
 # ACL-TCAM-Analyser
 
 Scripts to determine the TCAM resources required for a given access-list on the Cisco 8000 series platforms.
+
 For IPv4 access-lists use the acltcamcheck.py script.
+
 For IPv6 access-lists use the v6acltcamcheck.py script.
 
 These scripts do not support for hybrid ACLs with object groups.
