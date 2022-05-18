@@ -328,5 +328,5 @@ print("Number of permit icmp entries:", permiticmp)
 print("Number of deny icmp entries:", denyicmp)
 print("Number of permit or deny entries for other IP protocols:", permitdenyipp)
 
-print("Total TCAM entries needed for this ACL is:", totaltcam)
+print("Total narrow (160 bit) TCAM entries needed for this ACL is:", totaltcam)
 
