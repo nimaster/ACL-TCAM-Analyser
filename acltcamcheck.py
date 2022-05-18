@@ -1,10 +1,10 @@
+__author__ = "Niall Masterson"
+__author_email__ = "nimaster@cisco.com"
+__copyright__ = "Copyright (c) 2022 Cisco Systems, Inc."
+
 """
 THIS SCRIPT CALCULATES THE TCAM RESOURCES ON CISCO 8000 SERIES ROUTERS REQUIRED FOR A GIVEN ACCESS_LIST
 COPY YOUR ACL TO A FILE CALLED sample-acl AND THEN RUN THE SCRIPT
-
-NIALL MASTERSON
-CISCO SYSTEMS
-2022
 """
 
 
